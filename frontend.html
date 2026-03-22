@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中医智能诊疗助手</title>
+    <style>
+        :root {
+            --apple-white: #FFFFFF;
+            --apple-black: #1D1D1F;
+            --apple-gray-light: #F5F5F7;
+            --apple-gray-medium: #86868B;
+            --apple-gray-dark: #6E6E73;
+            --apple-border: #D2D2D7;
+            --apple-shadow: rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+            background: var(--apple-white);
+            color: var(--apple-black);
+            overflow-x: hidden;
+        }
+
+        /* Hero区域 */
+        .hero-section {
+            background: var(--apple-white);
+            padding: 30px 20px 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--apple-border);
+        }
+
+        h1 {
+            font-size: 48px;
+            font-weight: 600;
+            letter-spacing: -1px;
+            color: var(--apple-black);
+            margin: 0 0 8px 0;
+        }
+
+        .hero-subtitle {
+            font-size: 19px;
+            color: var(--apple-gray-medium);
+            margin: 0;
+        }
+
+        /* 侧边栏切换按钮 */
+        .sidebar-toggle {
+            position: fixed;
+            left: 20px;
+            top: 20px;
+            z-index: 1001;
+            background: #1D1D1F;
+            color: #FFFFFF;
+            border: 3px solid #FFFFFF;
+            border-radius: 14px;
+            padding: 16px 32px;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+            min-width: 130px;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+
+        .sidebar-toggle:hover {
+            background: #6E6E73;
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 0 2px rgba(255, 255, 255, 0.5);
+        }
+
+        .sidebar-toggle:active {
+            transform: translateY(-1px) scale(1.02);
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            position: fixed;
+            left: -420px;
+            top: 0;
+            width: 420px;
+            height: 100vh;
+            background: var(--apple-white);
+            border-right: 1px solid var(--apple-border);
+            box-shadow: 2px 0 20px rgba(0, 0, 0, 0.15);
+            transition: left 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 30px 24px;
+        }
+
+        .sidebar.open {
+            left: 0;
+        }
+
+        .sidebar h2 {
+            margin-top: 0;
+            margin-bottom: 28px;
+            font-size: 28px;
+            color: var(--apple-black);
+        }
+
+        .sidebar .form-group {
+            margin-bottom: 24px;
+        }
+
+        .sidebar label {
+            display: block;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--apple-black);
+            margin-bottom: 10px;
+        }
+
+        .sidebar select,
+        .sidebar input[type="text"],
+        .sidebar textarea {
+            width: 100%;
+            border: 1px solid var(--apple-border);
+            border-radius: 12px;
+            padding: 14px 18px;
+            font-size: 17px;
+            background: var(--apple-white);
+            color: var(--apple-black);
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .sidebar select:focus,
+        .sidebar input[type="text"]:focus,
+        .sidebar textarea:focus {
+            outline: none;
+            border-color: var(--apple-black);
+            box-shadow: 0 0 0 4px rgba(29, 29, 31, 0.1);
+        }
+
+        .sidebar textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        /* 复选框组 */
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 12px;
+            padding: 16px;
+            background: var(--apple-gray-light);
+            border-radius: 12px;
+            border: 1px solid var(--apple-border);
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+            accent-color: var(--apple-black);
+        }
+
+        .checkbox-item label {
+            margin: 0;
+            font-weight: 400;
+            cursor: pointer;
+        }
+
+        /* 遮罩层 */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* 主内容区域 */
+        .chat-main-area {
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px 40px 40px;
+            margin: 0 auto;
+        }
+
+        /* 聊天容器 */
+        .chatbot-container {
+            background: var(--apple-white);
+            border-radius: 18px;
+            padding: 32px;
+            border: 1px solid var(--apple-border);
+            min-height: 650px;
+            max-height: 650px;
+            box-shadow: 0 2px 8px var(--apple-shadow);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .message {
+            margin: 12px 0;
+            padding: 14px 20px;
+            border-radius: 20px;
+            max-width: 75%;
+            font-size: 16px;
+            line-height: 1.6;
+            word-wrap: break-word;
+        }
+
+        .message.user {
+            background: var(--apple-black);
+            color: var(--apple-white);
+            border-radius: 20px 20px 4px 20px;
+            margin-left: auto;
+        }
+
+        .message.assistant {
+            background: var(--apple-gray-light);
+            color: var(--apple-black);
+            border-radius: 20px 20px 20px 4px;
+            margin-right: auto;
+            border: 1px solid var(--apple-border);
+        }
+
+        /* 输入区域 */
+        .input-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .input-row input[type="text"] {
+            flex: 1;
+            border: 1px solid var(--apple-border);
+            border-radius: 12px;
+            padding: 14px 18px;
+            font-size: 17px;
+            background: var(--apple-white);
+            color: var(--apple-black);
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .input-row input[type="text"]:focus {
+            outline: none;
+            border-color: var(--apple-black);
+            box-shadow: 0 0 0 4px rgba(29, 29, 31, 0.1);
+        }
+
+        .input-row input[type="text"]::placeholder {
+            color: var(--apple-gray-medium);
+        }
+
+        /* 按钮 */
+        .btn {
+            border: none;
+            border-radius: 22px;
+            padding: 14px 28px;
+            font-size: 17px;
+            font-weight: 400;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 44px;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--apple-black);
+            color: var(--apple-white);
+        }
+
+        .btn-primary:hover {
+            background: var(--apple-gray-dark);
+            transform: scale(1.02);
+        }
+
+        .btn-secondary {
+            background: var(--apple-white);
+            color: var(--apple-black);
+            border: 1px solid var(--apple-border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--apple-gray-light);
+            transform: scale(1.02);
+        }
+
+        .button-row {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--apple-gray-light);
+            border-top-color: var(--apple-black);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- 侧边栏切换按钮 -->
+    <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">
+        <span id="toggle-text">患者信息</span>
+    </button>
+
+    <!-- Hero区域 -->
+    <div class="hero-section">
+        <h1>中医智能诊疗助手</h1>
+        <p class="hero-subtitle">基于AI的专业中医诊疗咨询平台</p>
+    </div>
+
+    <!-- 侧边栏 - 医疗信息 -->
+    <div class="sidebar" id="medical-sidebar">
+        <h2>患者医疗信息</h2>
+        
+        <div class="form-group">
+            <label for="department">就诊科室</label>
+            <select id="department">
+                <option value="内科">内科</option>
+                <option value="外科">外科</option>
+                <option value="儿科">儿科</option>
+                <option value="妇科">妇科</option>
+                <option value="骨科">骨科</option>
+                <option value="神经科">神经科</option>
+                <option value="心血管科">心血管科</option>
+                <option value="消化科">消化科</option>
+                <option value="呼吸科">呼吸科</option>
+                <option value="内分泌科">内分泌科</option>
+                <option value="皮肤科">皮肤科</option>
+                <option value="眼科">眼科</option>
+                <option value="耳鼻喉科">耳鼻喉科</option>
+                <option value="中医科" selected>中医科</option>
+                <option value="康复科">康复科</option>
+                <option value="急诊科">急诊科</option>
+                <option value="其他">其他</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>主要症状（可多选）</label>
+            <div class="checkbox-group" id="symptoms-group">
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-1" value="发热">
+                    <label for="symptom-1">发热</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-2" value="咳嗽">
+                    <label for="symptom-2">咳嗽</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-3" value="头痛">
+                    <label for="symptom-3">头痛</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-4" value="腹痛">
+                    <label for="symptom-4">腹痛</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-5" value="腹泻">
+                    <label for="symptom-5">腹泻</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-6" value="呕吐">
+                    <label for="symptom-6">呕吐</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-7" value="乏力">
+                    <label for="symptom-7">乏力</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-8" value="失眠">
+                    <label for="symptom-8">失眠</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-9" value="焦虑">
+                    <label for="symptom-9">焦虑</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-10" value="胸闷">
+                    <label for="symptom-10">胸闷</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-11" value="心悸">
+                    <label for="symptom-11">心悸</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-12" value="关节痛">
+                    <label for="symptom-12">关节痛</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-13" value="皮疹">
+                    <label for="symptom-13">皮疹</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-14" value="咳嗽有痰">
+                    <label for="symptom-14">咳嗽有痰</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-15" value="咽痛">
+                    <label for="symptom-15">咽痛</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-16" value="鼻塞">
+                    <label for="symptom-16">鼻塞</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-17" value="流涕">
+                    <label for="symptom-17">流涕</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-18" value="食欲不振">
+                    <label for="symptom-18">食欲不振</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-19" value="恶心">
+                    <label for="symptom-19">恶心</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-20" value="便秘">
+                    <label for="symptom-20">便秘</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-21" value="尿频">
+                    <label for="symptom-21">尿频</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-22" value="腰酸">
+                    <label for="symptom-22">腰酸</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-23" value="背痛">
+                    <label for="symptom-23">背痛</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-24" value="四肢无力">
+                    <label for="symptom-24">四肢无力</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-25" value="头晕">
+                    <label for="symptom-25">头晕</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-26" value="耳鸣">
+                    <label for="symptom-26">耳鸣</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="symptom-27" value="视力模糊">
+                    <label for="symptom-27">视力模糊</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="present_illness">现病史</label>
+            <textarea id="present_illness" rows="2">患者主诉咳嗽、咳痰3天，伴有发热</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="past_history">既往史</label>
+            <textarea id="past_history" rows="2">无重大疾病史，无手术史</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="current_symptoms">刻下症（详细描述）</label>
+            <textarea id="current_symptoms" rows="3">咳嗽频作，痰黄粘稠，发热38.5℃，口渴，咽痛</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="allergy_history">过敏史</label>
+            <textarea id="allergy_history" rows="2">无药物及食物过敏史</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="tcm_diagnosis">中医四诊</label>
+            <textarea id="tcm_diagnosis" rows="2">舌红苔黄腻，脉浮数</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="physical_exam">体格检查</label>
+            <textarea id="physical_exam" rows="2">咽部充血，扁桃体I度肿大，双肺呼吸音粗</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="diagnosis_name">诊断名称</label>
+            <input type="text" id="diagnosis_name" value="急性支气管炎">
+        </div>
+
+        <div class="form-group">
+            <label for="tcm_syndrome">中医症候</label>
+            <input type="text" id="tcm_syndrome" value="风热犯肺证">
+        </div>
+    </div>
+
+    <!-- 遮罩层 -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <!-- 主内容区域 - 聊天窗口 -->
+    <div class="chat-main-area">
+        <div class="chatbot-container">
+            <div class="chat-messages" id="chat-messages"></div>
+        </div>
+
+        <div class="input-row">
+            <input type="text" id="message-input" placeholder="请输入关于患者诊疗的问题..." onkeypress="handleKeyPress(event)">
+            <button class="btn btn-primary" onclick="sendMessage()">发送</button>
+        </div>
+
+        <div class="button-row">
+            <button class="btn btn-secondary" onclick="clearChat()">清空对话</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:8000/v1';
+        let chatHistory = [];
+
+        // 侧边栏切换
+        function toggleSidebar() {
+            const sidebar = document.getElementById('medical-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const toggleText = document.getElementById('toggle-text');
+            
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('open');
+            
+            if (sidebar.classList.contains('open')) {
+                toggleText.textContent = '关闭';
+            } else {
+                toggleText.textContent = '患者信息';
+            }
+        }
+
+        // 获取医疗信息
+        function getMedicalInfo() {
+            const symptoms = Array.from(document.querySelectorAll('#symptoms-group input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+            
+            return {
+                department: document.getElementById('department').value,
+                symptoms: symptoms,
+                present_illness: document.getElementById('present_illness').value,
+                past_history: document.getElementById('past_history').value,
+                current_symptoms: document.getElementById('current_symptoms').value,
+                allergy_history: document.getElementById('allergy_history').value,
+                tcm_diagnosis: document.getElementById('tcm_diagnosis').value,
+                physical_exam: document.getElementById('physical_exam').value,
+                diagnosis_name: document.getElementById('diagnosis_name').value,
+                tcm_syndrome: document.getElementById('tcm_syndrome').value
+            };
+        }
+
+        // 构建消息
+        function buildMessages(userMessage, medicalInfo) {
+            const messages = [];
+            
+            // 系统提示
+            messages.push({
+                role: "system",
+                content: "你是由达星辰，陈欣悦，彭延浩三人共同训练的医疗AI助手，基于Qwen3-1.7B模型进行微调训练。你专注于提供医疗健康相关的咨询和建议，特别是中医诊疗和健康咨询。请用中文回答用户的问题。"
+            });
+
+            // 历史对话
+            chatHistory.forEach(msg => {
+                messages.push(msg);
+            });
+
+            // 构建包含医疗信息的用户消息
+            let medicalMessage = "【患者医疗信息】\n";
+            if (medicalInfo.department) {
+                medicalMessage += `就诊科室：${medicalInfo.department}\n`;
+            }
+            if (medicalInfo.symptoms && medicalInfo.symptoms.length > 0) {
+                medicalMessage += `主要症状：${medicalInfo.symptoms.join('、')}\n`;
+            }
+            if (medicalInfo.present_illness) {
+                medicalMessage += `现病史：${medicalInfo.present_illness}\n`;
+            }
+            if (medicalInfo.past_history) {
+                medicalMessage += `既往史：${medicalInfo.past_history}\n`;
+            }
+            if (medicalInfo.current_symptoms) {
+                medicalMessage += `刻下症：${medicalInfo.current_symptoms}\n`;
+            }
+            if (medicalInfo.allergy_history) {
+                medicalMessage += `过敏史：${medicalInfo.allergy_history}\n`;
+            }
+            if (medicalInfo.tcm_diagnosis) {
+                medicalMessage += `中医四诊：${medicalInfo.tcm_diagnosis}\n`;
+            }
+            if (medicalInfo.physical_exam) {
+                medicalMessage += `体格检查：${medicalInfo.physical_exam}\n`;
+            }
+            if (medicalInfo.diagnosis_name) {
+                medicalMessage += `诊断名称：${medicalInfo.diagnosis_name}\n`;
+            }
+            if (medicalInfo.tcm_syndrome) {
+                medicalMessage += `中医症候：${medicalInfo.tcm_syndrome}\n`;
+            }
+
+            medicalMessage += `\n【用户问题】\n${userMessage}`;
+            medicalMessage += "\n\n请基于以上患者信息提供专业的中医诊疗建议。";
+
+            messages.push({
+                role: "user",
+                content: medicalMessage
+            });
+
+            return messages;
+        }
+
+        // 添加消息到聊天界面
+        function addMessage(content, role) {
+            const messagesDiv = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            messageDiv.textContent = content;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // 更新最后一条消息
+        function updateLastMessage(content) {
+            const messagesDiv = document.getElementById('chat-messages');
+            const lastMessage = messagesDiv.lastElementChild;
+            if (lastMessage && lastMessage.classList.contains('assistant')) {
+                lastMessage.textContent = content;
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+        }
+
+        // 发送消息
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+
+            // 添加用户消息
+            addMessage(message, 'user');
+            chatHistory.push({ role: "user", content: message });
+            
+            // 添加空的助手消息占位符
+            addMessage('', 'assistant');
+            const assistantMessageIndex = chatHistory.length;
+            chatHistory.push({ role: "assistant", content: "" });
+
+            // 清空输入框
+            input.value = '';
+            input.disabled = true;
+
+            // 获取医疗信息
+            const medicalInfo = getMedicalInfo();
+            
+            // 构建消息
+            const messages = buildMessages(message, medicalInfo);
+
+            try {
+                // 发送流式请求
+                const response = await fetch(`${API_BASE_URL}/chat/completions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'text/event-stream',
+                    },
+                    body: JSON.stringify({
+                        model: "qwen3",
+                        messages: messages,
+                        stream: true,
+                        temperature: 0.7,
+                        max_tokens: 4096
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullResponse = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.slice(6);
+                            if (data === '[DONE]') continue;
+
+                            try {
+                                const json = JSON.parse(data);
+                                if (json.choices && json.choices[0] && json.choices[0].delta && json.choices[0].delta.content) {
+                                    fullResponse += json.choices[0].delta.content;
+                                    // 移除推理标记（包括各种可能的格式）
+                                    const cleanedResponse = fullResponse
+                                        .replace(/<think>[\s\S]*?<\/think>/gi, '')
+                                        .replace(/<think>[\s\S]*?<\/redacted_reasoning>/gi, '')
+                                        .replace(/<think>/gi, '')
+                                        .replace(/<\/think>/gi, '')
+                                        .replace(/<think>/gi, '')
+                                        .replace(/<\/redacted_reasoning>/gi, '')
+                                        .trim();
+                                    updateLastMessage(cleanedResponse);
+                                }
+                            } catch (e) {
+                                // 忽略解析错误
+                            }
+                        }
+                    }
+                }
+
+                // 移除推理标记并更新历史记录（包括各种可能的格式）
+                const cleanedResponse = fullResponse
+                    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+                    .replace(/<think>[\s\S]*?<\/redacted_reasoning>/gi, '')
+                    .replace(/<think>/gi, '')
+                    .replace(/<\/think>/gi, '')
+                    .replace(/<think>/gi, '')
+                    .replace(/<\/redacted_reasoning>/gi, '')
+                    .trim();
+                chatHistory[assistantMessageIndex].content = cleanedResponse;
+
+            } catch (error) {
+                console.error('Error:', error);
+                updateLastMessage(`抱歉，发生了错误: ${error.message}`);
+            } finally {
+                input.disabled = false;
+                input.focus();
+            }
+        }
+
+        // 清空对话
+        function clearChat() {
+            if (confirm('确定要清空所有对话吗？')) {
+                chatHistory = [];
+                document.getElementById('chat-messages').innerHTML = '';
+            }
+        }
+
+        // 处理回车键
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+    </script>
+</body>
+</html>
+
